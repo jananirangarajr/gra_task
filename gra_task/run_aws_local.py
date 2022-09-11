@@ -76,8 +76,8 @@ def zip_file_lambda(program_name, file_loc):
     :return:
     """
 
-    filename = program_name.split(".")[0]
-    zip_file_loc = f"./lambdas/{filename}.zip"
+    filename = file_loc.split(".")[0]
+    zip_file_loc = f"{filename}.zip"
     zip_remove = f"rm -f {zip_file_loc}"
     run(zip_remove, shell=True, check=False)
     zip_command = f"zip -j {zip_file_loc} {file_loc}"
