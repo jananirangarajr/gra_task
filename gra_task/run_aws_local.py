@@ -21,8 +21,8 @@ def create_lambda_function(create_func_name, program_name, run_time, file_loc, h
     handler = f"{filename}.lambda_handler" if handler_name is None else handler_name
 
     lambda_create_command = f"awslocal lambda create-function --function-name {create_func_name} --runtime {run_time}" \
-                            f" --zip-file fileb://{zip_file_loc} --handler {handler} --role {role} "
-
+                            f" --zip-file fileb://{zip_file_loc} --handler {handler} --role {role}"
+    print(lambda_create_command)
     run(lambda_create_command, shell=True, check=False)
 
 
@@ -78,6 +78,7 @@ def zip_file_lambda(program_name, file_loc):
 
     filename = file_loc.split(".")[0]
     zip_file_loc = f"{filename}.zip"
+    print(zip_file_loc)
     zip_remove = f"rm -f {zip_file_loc}"
     run(zip_remove, shell=True, check=False)
     zip_command = f"zip -j {zip_file_loc} {file_loc}"
