@@ -1,6 +1,6 @@
 from os import path
 from codecs import open as codopen
-from setuptools import setup
+from setuptools import setup, find_packages
 
 
 current_path = path.abspath(path.dirname(__file__))
@@ -15,13 +15,14 @@ setup(
     version='1.0',
     author='Janani Rangaraj',
     description='Technical interview for GRA',
-    url='https://github.com/',
+    url='https://github.com/jananirangarajr/gra_task',
     license='Apache 2.0',
     entry_points={
         'console_scripts': [
             'run-aws-local=gra_task.run_aws_local:main'
             ]
     },
+    packages=find_packages(),
     include_package_data=True,
     install_requires=install_requires,
 )
