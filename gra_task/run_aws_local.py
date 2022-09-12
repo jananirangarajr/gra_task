@@ -1,40 +1,38 @@
 #! /usr/bin/python3
 from argparse import ArgumentParser
-from subprocess import run
+from subprocess import run, check_output, Popen
 from os import system
 from time import sleep
 from tempfile import mkstemp
 
-def create_lambda_function(create_func_name, program_name, run_time, file_loc, handler_name, role):
+def create_lambda_function(create_func_name, run_time, file_loc, handler_name, role):
     """
     To creates the lambda function from the given parameters in Localstack
-    :param create_func_name: function name of the lambda
-    :param program_name: program-name (source code) to be converted to lambda
-    :param run_time: define which languages
-    :param file_loc: program file location
+    :param create_func_name: function name of the lambda(Lambda title in AWS)
+    :param run_time: define which programming languages compiler
+    :param file_loc: program file location in local system
     :param handler_name: zipfile + entry point of the code
     :param role: ARN role for the Lambda
     :return:
     """
-    filename = program_name.split(".")[0]
-    zip_file_loc = zip_file_lambda(program_name, file_loc)
+    filename_without_ex = file_loc.split("/")[-1].split(".")[0]
+    zip_file_loc = zip_file_lambda(file_loc)
 
-    handler = f"{filename}.lambda_handler" if handler_name is None else handler_name
+    handler = f"{filename_without_ex}.lambda_handler" if handler_name is None else handler_name
 
     lambda_create_command = f"awslocal lambda create-function --function-name {create_func_name} --runtime {run_time}" \
                             f" --zip-file fileb://{zip_file_loc} --handler {handler} --role {role}"
 
     run(lambda_create_command, shell=True, check=False)
 
-def update_lambda_function(update_func_name, program_name, file_loc):
+def update_lambda_function(update_func_name, file_loc):
     """
     To update the Lambda function
     :param update_func_name: function name of the lambda
-    :param program_name: program-name (source code) to be converted to lambda
-    :param file_loc: program file location
+    :param file_loc: program file location in local system
     :return:
     """
-    zip_file_loc = zip_file_lambda(program_name, file_loc)
+    zip_file_loc = zip_file_lambda(file_loc)
     update_lambda_cmd = f"awslocal lambda update-function-code --function-name {update_func_name} " \
                         f"--zip-file fileb://{zip_file_loc}"
 
@@ -68,17 +66,24 @@ def delete_lambda_function(delete_func_name):
     run(delete_lambda_cmd, shell=True, check=False, capture_output=True)
     print("Deleted the Lambda")
 
+def list_lambda(max_item):
+    """
 
-def zip_file_lambda(program_name, file_loc):
+    :return:
+    """
+    list_cmd = f"awslocal lambda list-functions --max-items {max_item}"
+    list_lambda_cmd = run(list_cmd, shell=True, check=False, capture_output=True, text=True)
+    print(list_lambda_cmd.stdout)
+
+def zip_file_lambda(file_loc):
     """
     To Zip the source file
-    :param program_name: program-name (source code) to be converted to lambda
-    :param file_loc: program file location
+    :param file_loc: program file location in local system
     :return:
     """
 
-    filename = file_loc.split(".")[0]
-    zip_file_loc = f"{filename}.zip"
+    file_name = file_loc.split("/")[-1].split(".")[0]
+    zip_file_loc = f"{file_name}.zip"
     zip_remove = f"rm -f {zip_file_loc}"
     run(zip_remove, shell=True, check=False)
     zip_command = f"zip -j {zip_file_loc} {file_loc}"
@@ -109,6 +114,7 @@ def stop_docker_compose():
     Execute the Docker compose down command
     :return:
     """
+    print('Running Docker-Compose down')
     try:
          run(['docker-compose', 'down'], capture_output=True)
     except Exception as e:
@@ -182,11 +188,9 @@ def main():
                         help='Update the lambda function in local aws')
     parser.add_argument('-d', '--delete', dest='delete_func_name', nargs='?',
                         help='Delete the lambda function in local aws')
-    parser.add_argument('-p', '--program', dest='program_name', nargs='?',
-                        help='Program name of the Lambda function')
     parser.add_argument('-ru', '--runtime', dest='run_time', nargs='?', default="python3.9",
                         help='Run time of the lambda function in local aws')
-    parser.add_argument('-f', '--file', dest='program_file', nargs='?', default="./lambdas/program.py",
+    parser.add_argument('-f', '--file', dest='file_loc', nargs='?', default="./lambdas/program.py",
                         help='Program file location of lambda function in local aws')
     parser.add_argument('-ha', '--handler', dest='handler_name', nargs='?',
                         help='handler of the lambda function in local aws')
@@ -194,6 +198,8 @@ def main():
                         help='Role ARN of the lambda function in local aws')
     parser.add_argument('-s', '--stop', dest='stop_docker', nargs='?',
                         help='Stop Docker ')
+    parser.add_argument('-ls', '--list', dest='list_lambda', nargs='?',
+                        help='List Lambda in local AWS ')
     parser.add_argument('-pay', '--payload', dest='payload', nargs='?',
                         default="arn:aws:iam::000000000000:role/lambda-ex",
                         help='Input for the lambda function in local aws')
@@ -202,26 +208,29 @@ def main():
     args = parser.parse_args()
 
     create_func_name, invoke_func_name, update_func_name, delete_func_name, \
-    program_name, run_time, program_file, \
-    handler_name, role, stop_docker, payload, out_file = [vars(args).get(ele) for ele in args.__dict__.keys()]
+     run_time, file_loc, \
+    handler_name, role, stop_docker,list_lam, payload, out_file = [vars(args).get(ele) for ele in args.__dict__.keys()]
 
     start_docker_compose()
 
     if create_func_name is not None:
         print("Creating the Lambda function: {}".format(create_func_name))
         create_roles()
-        create_lambda_function(create_func_name, program_name, run_time, program_file, handler_name, role)
+        create_lambda_function(create_func_name, run_time, file_loc, handler_name, role)
     if invoke_func_name is not None:
         print("Invoking the Lambda function: {}".format(invoke_func_name))
         invoke_lambda_function(invoke_func_name, payload, out_file)
     if update_func_name is not None:
         print("Updating the Lambda function: {}".format(update_func_name))
-        update_lambda_function(update_func_name, program_name, program_file)
+        update_lambda_function(update_func_name, file_loc)
     if delete_func_name is not None:
         print("Deleting the Lambda function: {}".format(delete_func_name))
         delete_lambda_function(delete_func_name)
     if stop_docker is not None:
         stop_docker_compose()
+    if list_lam is not None:
+        list_lambda(list_lam)
+
 
 
 if __name__ == "__main__":
