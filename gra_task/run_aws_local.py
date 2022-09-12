@@ -1,8 +1,9 @@
 #! /usr/bin/python3
 from argparse import ArgumentParser
-from subprocess import run
+from subprocess import run, check_output, Popen
 from os import system
-
+from time import sleep
+from tempfile import mkstemp
 
 def create_lambda_function(create_func_name, program_name, run_time, file_loc, handler_name, role):
     """
@@ -22,9 +23,8 @@ def create_lambda_function(create_func_name, program_name, run_time, file_loc, h
 
     lambda_create_command = f"awslocal lambda create-function --function-name {create_func_name} --runtime {run_time}" \
                             f" --zip-file fileb://{zip_file_loc} --handler {handler} --role {role}"
-    print(lambda_create_command)
-    run(lambda_create_command, shell=True, check=False)
 
+    run(lambda_create_command, shell=True, check=False)
 
 def update_lambda_function(update_func_name, program_name, file_loc):
     """
@@ -39,7 +39,7 @@ def update_lambda_function(update_func_name, program_name, file_loc):
                         f"--zip-file fileb://{zip_file_loc}"
 
     run_update_lambda_cmd = run(update_lambda_cmd, shell=True, check=False, capture_output=True)
-    print(run_update_lambda_cmd.stdout)
+    # print(run_update_lambda_cmd.stdout)
 
 
 def invoke_lambda_function(invoke_func_name, payload, out_file):
@@ -53,7 +53,8 @@ def invoke_lambda_function(invoke_func_name, payload, out_file):
     invoke_lambda_cmd = f"awslocal lambda invoke --function-name {invoke_func_name} --invocation-type RequestResponse" \
                         f" --payload fileb://{payload} {out_file}"
     run_invoke_lambda_cmd = run(invoke_lambda_cmd, shell=True, check=False, capture_output=True)
-    print(run_invoke_lambda_cmd.stdout)
+    print('Check the output file: {}'.format(out_file))
+    # print(run_invoke_lambda_cmd.stdout)
 
 
 def delete_lambda_function(delete_func_name):
@@ -78,7 +79,6 @@ def zip_file_lambda(program_name, file_loc):
 
     filename = file_loc.split(".")[0]
     zip_file_loc = f"{filename}.zip"
-    print(zip_file_loc)
     zip_remove = f"rm -f {zip_file_loc}"
     run(zip_remove, shell=True, check=False)
     zip_command = f"zip -j {zip_file_loc} {file_loc}"
@@ -104,26 +104,72 @@ def create_roles():
         print(str(e))
 
 
-def start_docker_compose():
-    """
-    Execute the Docker compose up command
-    :return:
-    """
-    try:
-         run(['docker-compose', 'up'], capture_output=False)
-    except Exception as e:
-        print(str(e))
-
-
 def stop_docker_compose():
     """
     Execute the Docker compose down command
     :return:
     """
     try:
-        run(['docker-compose', 'down'], capture_output=True)
+         run(['docker-compose', 'down'], capture_output=True)
     except Exception as e:
         print(str(e))
+
+
+def generate_docker_compose():
+    _, docker_compose_file_location = mkstemp(suffix=".yml")
+    with open(docker_compose_file_location,'w', encoding="utf-8") as docker_compose_file:
+        docker_compose_file.write(
+"""
+version: "3.8"
+services:
+  localstack:
+    container_name: "gra_task_localstack"
+    image: localstack/localstack
+    ports:
+      - "127.0.0.1:4566:4566"            # LocalStack Gateway
+      - "127.0.0.1:4510-4559:4510-4559"  # external services port range
+      - "127.0.0.1:53:53"                # DNS config (only required for Pro)
+      - "127.0.0.1:53:53/udp"            # DNS config (only required for Pro)
+      - "127.0.0.1:443:443"              # LocalStack HTTPS Gateway (only required for Pro)
+    environment:
+      - DEBUG=1
+      - SERVICES=s3,lambda,ssm,iam,cloudwatch
+      - LAMBDA_EXECUTOR=docker
+      - LAMBDA_REMOTE_DOCKER=true
+      - DOCKER_HOST=unix:///var/run/docker.sock
+      - USE_SINGLE_REGION=1
+      - DEFAULT_REGION=us-east-1
+    volumes:
+      - "${LOCALSTACK_VOLUME_DIR:-./volume}:/var/lib/localstack"
+      - "/var/run/docker.sock:/var/run/docker.sock"
+"""
+        )
+    return docker_compose_file_location
+
+def start_docker_compose():
+    """
+    Execute the Docker compose up command
+    :return:
+    """
+    check_docker_running = run('docker ps', shell=True, capture_output=True, text=True).stdout
+    print(check_docker_running)
+    if check_docker_running.find("gra_task_localstack") != -1:
+        print('Docker already running')
+        return
+    else:
+        print('Starting the Docker')
+        docker_compose_file_location = generate_docker_compose()
+        print(docker_compose_file_location)
+        import os.path
+        print(os.path.isfile(docker_compose_file_location))
+        sleep(2)
+        docker_compose_command = f"docker-compose -f {docker_compose_file_location} up -d"
+        try:
+            command = run(docker_compose_command, capture_output=True, text=True).stdout
+            # command.wait()
+            sleep(3)
+        except Exception as e:
+            print(str(e))
 
 
 def main():
@@ -163,7 +209,7 @@ def main():
     program_name, run_time, program_file, \
     handler_name, role, stop_docker, payload, out_file = [vars(args).get(ele) for ele in args.__dict__.keys()]
 
-    # start_docker_compose()
+    start_docker_compose()
 
     if create_func_name is not None:
         print("Creating the Lambda function: {}".format(create_func_name))
