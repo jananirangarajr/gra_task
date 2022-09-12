@@ -39,7 +39,6 @@ def update_lambda_function(update_func_name, file_loc):
     run_update_lambda_cmd = run(update_lambda_cmd, shell=True, check=False, capture_output=True)
     # print(run_update_lambda_cmd.stdout)
 
-
 def invoke_lambda_function(invoke_func_name, payload, out_file):
     """
     To Invoke the Lambda function
@@ -54,7 +53,6 @@ def invoke_lambda_function(invoke_func_name, payload, out_file):
     print('Check the output file: {}'.format(out_file))
     # print(run_invoke_lambda_cmd.stdout)
 
-
 def delete_lambda_function(delete_func_name):
     """
     To delete the Lambda function
@@ -68,9 +66,11 @@ def delete_lambda_function(delete_func_name):
 
 def list_lambda(max_item):
     """
-
+    List the lambdas in local AWS
+    :param max_item: maximum no. of items(lambdas) to display
     :return:
     """
+
     list_cmd = f"awslocal lambda list-functions --max-items {max_item}"
     list_lambda_cmd = run(list_cmd, shell=True, check=False, capture_output=True, text=True)
     print(list_lambda_cmd.stdout)
@@ -91,7 +91,6 @@ def zip_file_lambda(file_loc):
 
     return zip_file_loc
 
-
 def create_roles():
     """
     Creating Roles for Lambda function
@@ -108,7 +107,6 @@ def create_roles():
     except Exception as e:
         print(str(e))
 
-
 def stop_docker_compose():
     """
     Execute the Docker compose down command
@@ -119,7 +117,6 @@ def stop_docker_compose():
          run(['docker-compose', 'down'], capture_output=True)
     except Exception as e:
         print(str(e))
-
 
 def generate_docker_compose():
     _, docker_compose_file_location = mkstemp(suffix=".yml")
@@ -230,7 +227,6 @@ def main():
         stop_docker_compose()
     if list_lam is not None:
         list_lambda(list_lam)
-
 
 
 if __name__ == "__main__":
