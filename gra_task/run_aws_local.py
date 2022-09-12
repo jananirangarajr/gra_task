@@ -1,6 +1,6 @@
 #! /usr/bin/python3
 from argparse import ArgumentParser
-from subprocess import run, check_output, Popen
+from subprocess import run
 from os import system
 from time import sleep
 from tempfile import mkstemp
@@ -142,6 +142,7 @@ services:
     volumes:
       - "${LOCALSTACK_VOLUME_DIR:-./volume}:/var/lib/localstack"
       - "/var/run/docker.sock:/var/run/docker.sock"
+      - "/var/folders/t0"
 """
         )
     return docker_compose_file_location
@@ -152,20 +153,15 @@ def start_docker_compose():
     :return:
     """
     check_docker_running = run('docker ps', shell=True, capture_output=True, text=True).stdout
-    print(check_docker_running)
     if check_docker_running.find("gra_task_localstack") != -1:
         print('Docker already running')
         return
     else:
         print('Starting the Docker')
         docker_compose_file_location = generate_docker_compose()
-        print(docker_compose_file_location)
-        import os.path
-        print(os.path.isfile(docker_compose_file_location))
-        sleep(2)
         docker_compose_command = f"docker-compose -f {docker_compose_file_location} up -d"
         try:
-            command = run(docker_compose_command, capture_output=True, text=True).stdout
+            command = system(docker_compose_command)
             # command.wait()
             sleep(3)
         except Exception as e:
