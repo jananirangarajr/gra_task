@@ -64,7 +64,7 @@ optional arguments:
 ```
 run-aws-local --create my-function --file ./gra_task/lambdas/program.py
 ```
-`--create` runs the `lambda create-function` in local stack. It creates the Lambda function is localstack. the argument is taken as the function name. eg: my-function\
+`--create` runs the `lambda create-function` in local stack. It creates the Lambda function is localstack. The argument is taken as the function name. eg: my-function\
 `--file` is the lambda function file location in local system. Enter the path to the file. eg: `./gra_task/lambdas/program.py`
 
 ### Optional parameters:
