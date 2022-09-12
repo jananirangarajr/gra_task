@@ -1,6 +1,11 @@
 def count_no_of_teams(ratings):
     """
-    Find the smallest missing positive number by creating a hash.
+    There are n soldiers standing in a line. Each soldier is assigned a unique rating value.
+
+    You have to form a team of 3 soldiers amongst them under the following rules:
+
+    Choose 3 soldiers with index (i, j, k) with rating (rating[i], rating[j], rating[k]).
+    A team is valid if: (rating[i] < rating[j] < rating[k]) or (rating[i] > rating[j] > rating[k]) where (0 <= i < j < k < n).
     :param ratings: list of int numbers
     :return:
     """
