@@ -5,12 +5,22 @@ def find_smallest_missing(nums):
     :param nums: list of int numbers
     :return:
     """
-    list_converted = set(nums)
-    smallest_number = 1
-    while True:
-        if smallest_number not in list_converted:
-            return smallest_number
-        smallest_number += 1
+    nums += [0]
+
+    n = len(nums)
+
+    for i in range(n):
+        if not (1 <= nums[i] < n):
+            nums[i] = 0
+
+    for i in range(n):
+        print(nums[i] % n)
+        nums[nums[i] % n] += n
+
+    for i in range(1, n):
+        if nums[i] // n == 0:
+            return i
+    return n
 
 
 def lambda_handler(event, context):

@@ -1,4 +1,4 @@
-def count_no_of_teams(ratings):
+def count_no_of_teams(rating):
     """
     There are n soldiers standing in a line. Each soldier is assigned a unique rating value.
 
@@ -9,17 +9,30 @@ def count_no_of_teams(ratings):
     :param ratings: list of int numbers
     :return:
     """
-    upper_val = [0] * len(ratings)
-    lower_val = [0] * len(ratings)
+    if len(rating) < 3:
+        return 0
+
     count = 0
-    for i in range(len(ratings)):
-        for j in range(i):
-            if ratings[j] < ratings[i]:
-                count += upper_val[j]
-                upper_val[i] += 1
+
+    for index in range(1, len(rating) - 1):
+
+        left_low = left_greater = right_low = right_greater = 0
+        element = rating[index]
+
+        # items to the left of element
+        for v in rating[: index]:
+            if v < element:
+                left_low += 1
             else:
-                count += lower_val[j]
-                lower_val[i] += 1
+                left_greater += 1
+
+        # items to the right of element
+        for v in rating[index + 1:]:
+            if v < element:
+                right_low += 1
+            else:
+                right_greater += 1
+        count += (left_low * right_greater) + (left_greater * right_low)
 
     return count
 
